@@ -8,6 +8,7 @@ import { AudioEngine, midiToFreq } from './engine';
 export class Sfx {
   private readonly engine: AudioEngine;
   private ladder = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84];
+  private jumpIdx = 0;
 
   constructor(engine: AudioEngine) {
     this.engine = engine;
@@ -32,20 +33,73 @@ export class Sfx {
     }
   }
 
-  /** 判定対象のない自由ジャンプの控えめな音 */
-  tick(): void {
+  /**
+   * ジャンプ音。いま鳴っているコードの構成音 (tones) から音を選ぶので
+   * 必ず BGM と調和する。連続ジャンプでも音が変わって心地よいよう、
+   * 内部カウンタで構成音を巡回させる。high=2段ジャンプ (1オクターブ上)。
+   */
+  jump(tones: number[], high = false): void {
+    if (tones.length === 0) tones = [60, 64, 67];
+    // 上側の構成音を巡回。2段ジャンプは一段高い音を選ぶ
+    const base = tones[this.jumpIdx % tones.length];
+    this.jumpIdx++;
+    const midi = high ? base + 12 : base;
+    const t = this.engine.ctx.currentTime;
+    this.bell(midiToFreq(midi), t, high ? 0.16 : 0.13);
+    if (high) {
+      // 2段ジャンプは5度上のきらめきを添える
+      this.bell(midiToFreq(midi + 7), t + 0.03, 0.08);
+      this.sparkle(t);
+    }
+  }
+
+  /** スライディングの柔らかいスワッシュ音 */
+  slide(): void {
     const ctx = this.engine.ctx;
     const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.value = 660;
+    const noise = this.noiseBuffer(0.22);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(3500, t);
+    bp.frequency.exponentialRampToValueAtTime(700, t + 0.2);
+    bp.Q.value = 0.8;
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0.07, t);
-    env.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-    osc.connect(env);
-    this.engine.out(env, 0.05);
-    osc.start(t);
-    osc.stop(t + 0.08);
+    env.gain.setValueAtTime(0.14, t);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    noise.connect(bp);
+    bp.connect(env);
+    this.engine.out(env, 0.15);
+    noise.start(t);
+    noise.stop(t + 0.22);
+  }
+
+  /** やわらかいベル (正弦波2倍音入り) */
+  private bell(freq: number, t: number, level: number): void {
+    const ctx = this.engine.ctx;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(level, t + 0.008);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    this.engine.out(env, 0.4);
+
+    const fund = ctx.createOscillator();
+    fund.type = 'sine';
+    fund.frequency.value = freq;
+    fund.connect(env);
+    fund.start(t);
+    fund.stop(t + 0.45);
+
+    const partial = ctx.createOscillator();
+    partial.type = 'sine';
+    partial.frequency.value = freq * 2;
+    const pEnv = ctx.createGain();
+    pEnv.gain.setValueAtTime(0, t);
+    pEnv.gain.linearRampToValueAtTime(level * 0.3, t + 0.006);
+    pEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    partial.connect(pEnv);
+    this.engine.out(pEnv, 0.3);
+    partial.start(t);
+    partial.stop(t + 0.2);
   }
 
   /** コイン取得: 上ずった2音の軽いアルペジオ */
@@ -118,14 +172,7 @@ export class Sfx {
 
   private sparkle(t: number): void {
     const ctx = this.engine.ctx;
-    const length = Math.floor(ctx.sampleRate * 0.08);
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < length; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
+    const src = this.noiseBuffer(0.08);
     const hp = ctx.createBiquadFilter();
     hp.type = 'highpass';
     hp.frequency.value = 9000;
@@ -137,5 +184,18 @@ export class Sfx {
     this.engine.out(env, 0.5);
     src.start(t);
     src.stop(t + 0.08);
+  }
+
+  private noiseBuffer(seconds: number): AudioBufferSourceNode {
+    const ctx = this.engine.ctx;
+    const length = Math.floor(ctx.sampleRate * seconds);
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    return src;
   }
 }

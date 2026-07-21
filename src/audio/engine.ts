@@ -40,11 +40,16 @@ export class AudioEngine {
   out(node: AudioNode, wet = 0.15): void {
     node.connect(this.master);
     if (wet > 0) {
-      const send = this.ctx.createGain();
-      send.gain.value = wet;
-      node.connect(send);
-      send.connect(this.reverb);
+      this.sendReverb(node, wet);
     }
+  }
+
+  /** node をリバーブにだけ送る (ドライ経路は呼び出し側で用意する) */
+  sendReverb(node: AudioNode, amount: number): void {
+    const send = this.ctx.createGain();
+    send.gain.value = amount;
+    node.connect(send);
+    send.connect(this.reverb);
   }
 
   private makeImpulse(seconds: number, decay: number): AudioBuffer {

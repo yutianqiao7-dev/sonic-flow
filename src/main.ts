@@ -87,9 +87,9 @@ async function startGame(): Promise<void> {
       music!.setIntensity(game!.intensityTier);
       renderer.addJudgeEffect(judgment, game!.heightAt(songTime()), songTime());
     },
-    onFreeJump: () => sfx!.tick(),
-    onAirJump: () => sfx!.tick(),
-    onFreeSlide: () => sfx!.tick(),
+    onFreeJump: () => sfx!.jump(music!.currentTones(songTime()), false),
+    onAirJump: () => sfx!.jump(music!.currentTones(songTime()), true),
+    onFreeSlide: () => sfx!.slide(),
     onCoin: () => sfx!.coin(),
     onStomp: () => {
       sfx!.stomp();
@@ -103,7 +103,7 @@ async function startGame(): Promise<void> {
   titleScreen.classList.add('hidden');
   resultScreen.classList.add('hidden');
   if (import.meta.env.DEV) {
-    (window as unknown as Record<string, unknown>).__debug = { game, songTime, engine, endGame, renderer, startGame };
+    (window as unknown as Record<string, unknown>).__debug = { game, songTime, engine, endGame, renderer, startGame, music };
   }
 }
 
