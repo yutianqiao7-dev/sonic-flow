@@ -9,6 +9,8 @@ export class Sfx {
   private readonly engine: AudioEngine;
   private ladder = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84];
   private jumpIdx = 0;
+  /** ヒット音の音色 (ステージのジャンルで変える) */
+  private wave: OscillatorType = 'triangle';
 
   constructor(engine: AudioEngine) {
     this.engine = engine;
@@ -16,6 +18,10 @@ export class Sfx {
 
   setLadder(ladder: number[]): void {
     this.ladder = ladder;
+  }
+
+  setTimbre(wave: OscillatorType): void {
+    this.wave = wave;
   }
 
   hit(combo: number, perfect: boolean): void {
@@ -158,13 +164,22 @@ export class Sfx {
   private pluck(freq: number, t: number, level: number, wet: number): void {
     const ctx = this.engine.ctx;
     const osc = ctx.createOscillator();
-    osc.type = 'triangle';
+    osc.type = this.wave;
     osc.frequency.value = freq;
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
     env.gain.linearRampToValueAtTime(level, t + 0.006);
     env.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-    osc.connect(env);
+    // 鋸/矩形は倍音がきついのでローパスで角を丸める
+    if (this.wave === 'sawtooth' || this.wave === 'square') {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = Math.min(6000, freq * 6);
+      osc.connect(lp);
+      lp.connect(env);
+    } else {
+      osc.connect(env);
+    }
     this.engine.out(env, wet);
     osc.start(t);
     osc.stop(t + 0.5);

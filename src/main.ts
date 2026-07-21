@@ -73,6 +73,7 @@ async function startGame(): Promise<void> {
 
   const stage = selectedStage;
   sfx!.setLadder(stage.ladder);
+  sfx!.setTimbre(stage.sfxWave);
   const course = generateCourse(stage);
 
   game = new Game(stage, course.entities, course.coins, {
