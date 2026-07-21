@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a14" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>SONIC FLOW - アクション音ゲー</title>
+  </head>
+  <body>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="title-screen" class="overlay">
+      <h1 class="game-title">SONIC<br />FLOW</h1>
+      <p class="subtitle">
+        ビートに乗って走れ!<br />
+        <b>タップ</b>=ジャンプ(空中でもう一度=2段ジャンプ)<br />
+        <b>下スワイプ</b>=スライディング<br />
+        トゲは跳び、バーはくぐり、敵は踏む。コインを集めよう
+      </p>
+      <div class="stage-select" id="stage-select"></div>
+      <button id="start-button" class="big-button">スタート</button>
+    </div>
+
+    <div id="result-screen" class="overlay hidden">
+      <h2 class="result-rank" id="result-rank">S</h2>
+      <div class="result-stats">
+        <div class="stat-row"><span>スコア</span><span id="stat-score">0</span></div>
+        <div class="stat-row"><span>最大コンボ</span><span id="stat-combo">0</span></div>
+        <div class="stat-row coin"><span>◉ コイン</span><span id="stat-coins">0</span></div>
+        <div class="stat-row perfect"><span>PERFECT</span><span id="stat-perfect">0</span></div>
+        <div class="stat-row good"><span>GOOD</span><span id="stat-good">0</span></div>
+        <div class="stat-row miss"><span>MISS</span><span id="stat-miss">0</span></div>
+      </div>
+      <button id="retry-button" class="big-button">もう一度</button>
+      <button id="menu-button" class="text-button">ステージ選択に戻る</button>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
